@@ -19,38 +19,29 @@ high performance storage systems\".\
 My research interests include but are not limited to, SSD(solid-state
 device), file system, CXL(compute express link), operating system, and
 flash-centric systems for AI applications(NDP).
-:::
 
 ## Education 
 **Ph.D. in Computer Science** *Virginia Tech* *Aug. 2023 -*
 
-::: itemize
-**Research Topic: Storage System** Co-advised by Huaicheng Li and Sam H.
+* **Research Topic: Storage System** Co-advised by Huaicheng Li and Sam H.
 Noh
-:::
 
 **Master's Degree in Computer Science** *Dankook University* *Graduated
 in Aug. 2023*
 
-::: itemize
-**Research Topic: ZNS SSD Internals and Filesystem** GPA 4.4/4.5
+* **Research Topic: ZNS SSD Internals and Filesystem** GPA 4.4/4.5
 Advisor: Jongmoo Choi
-:::
 
 **Visiting Scholar** *Syracuse University* *July -- Dec. 2022*
 
-::: itemize
-Electrical Engineering and Computer Science Co-advised by Bryan S. Kim
+* Electrical Engineering and Computer Science Co-advised by Bryan S. Kim
 and Jongmoo Choi
-:::
+
 
 **Bachelor of Computer Science** *Dankook University* *Graduated in Feb.
 2022*
 
-::: itemize
-Department of Software GPA 4.06/4.5
-:::
-:::
+* Department of Software GPA 4.06/4.5
 
 ## Patent
 
@@ -128,8 +119,7 @@ IITP(2022)*
 :::
 :::
 
-##
-SKILLS
+## SKILLS
 
   ------------------------------ -----------------------------------------------------------------------------------------------------------------------------------
   **Programming**                C/C++, Python, and Java
@@ -138,10 +128,8 @@ SKILLS
   ------------------------------ -----------------------------------------------------------------------------------------------------------------------------------
 
 \
-:::
 
-##
-Academic Awards and Achievements
+## Academic Awards and Achievements
 
 -   Academic Excellence Scholarship *Fall Semester 2022*
 
@@ -160,16 +148,14 @@ Academic Awards and Achievements
 -   Admission Scholarship *Spring Semester 2015*
 :::
 
-##
-Certification
+## Certification
 
 -   **Teacher's Certificate** *Ministry of Education,*\
     The Secondary School Teacher(Grade II) of Information & Computer
     *Republic of Korea, 2022*
 :::
 
-##
-Miscellaneous Activities
+## Miscellaneous Activities
 
 -   International Joint Workshop for High-Potential Individuals Global
     Training Program *IITP 2022*
@@ -189,7 +175,6 @@ Miscellaneous Activities
 
 -   **Editor**, Consulate General of the Republic of Korea in Jeddah
     *Jeddah, Saudi Arabia, Sep. -- Dec. 2016*
-:::
 
 <!-- 
 ---
