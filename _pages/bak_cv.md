@@ -50,8 +50,7 @@ Jongmoo Choi, Samuel Woo, and **Inho Song** *Korea: filed*\
 execution the same** *10-2022-0139234*
 
 
-##
-research project
+## research project
 
 **Building a Big Data System with Next-generation SSD***funded by IITP
 (2022 -- 2030)*
