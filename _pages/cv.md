@@ -1,4 +1,10 @@
 ---
+layout: archive
+title: "CV"
+permalink: /cv/
+author_profile: true
+redirect_from:
+  - /resume
 address: |
   <inhoinno@vt.edu>\
   [linkedin.com/in/inhoinno](https://www.linkedin.com/in/inhoinno)\
