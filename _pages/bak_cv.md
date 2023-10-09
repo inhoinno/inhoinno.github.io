@@ -11,8 +11,7 @@ address: |
   [github.com/inhoinno](https://github.com/inhoinno)
 ---
 
-::: rSection
-OBJECTIVE
+## OBJECTIVE
 
 I'm a Computer Science Ph.D. student at Virginia Tech. I am broadly
 interested in computer systems, especially \"How to design a scalable,
@@ -22,8 +21,8 @@ device), file system, CXL(compute express link), operating system, and
 flash-centric systems for AI applications(NDP).
 :::
 
-::: rSection
-Education **Ph.D. in Computer Science** *Virginia Tech* *Aug. 2023 -*
+## Education 
+**Ph.D. in Computer Science** *Virginia Tech* *Aug. 2023 -*
 
 ::: itemize
 **Research Topic: Storage System** Co-advised by Huaicheng Li and Sam H.
@@ -53,15 +52,14 @@ Department of Software GPA 4.06/4.5
 :::
 :::
 
-::: rSection
-Patent
+## Patent
 
 Jongmoo Choi, Samuel Woo, and **Inho Song** *Korea: filed*\
 **Method for analyzing vehicle forensic and computing device for
 execution the same** *10-2022-0139234*
-:::
 
-::: rSection
+
+##
 research project
 
 **Building a Big Data System with Next-generation SSD***funded by IITP
@@ -130,7 +128,7 @@ IITP(2022)*
 :::
 :::
 
-::: rSection
+##
 SKILLS
 
   ------------------------------ -----------------------------------------------------------------------------------------------------------------------------------
@@ -142,7 +140,7 @@ SKILLS
 \
 :::
 
-::: rSection
+##
 Academic Awards and Achievements
 
 -   Academic Excellence Scholarship *Fall Semester 2022*
@@ -162,7 +160,7 @@ Academic Awards and Achievements
 -   Admission Scholarship *Spring Semester 2015*
 :::
 
-::: rSection
+##
 Certification
 
 -   **Teacher's Certificate** *Ministry of Education,*\
@@ -170,7 +168,7 @@ Certification
     *Republic of Korea, 2022*
 :::
 
-::: rSection
+##
 Miscellaneous Activities
 
 -   International Joint Workshop for High-Potential Individuals Global
