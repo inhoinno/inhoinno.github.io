@@ -1,0 +1,252 @@
+---
+layout: archive
+title: "New album post"
+permalink: /album/new/
+author_profile: false
+---
+
+{% include base_path %}
+
+<p><a href="{{ base_path }}/album/">&larr; Back to Album</a></p>
+
+<div class="composer">
+
+  <p class="composer__note">
+    Compose a new album post below. When you hit <strong>Generate post</strong>, your browser builds a zip
+    containing the markdown file (destined for <code>_albums/</code>) and your images (destined for
+    <code>images/album/</code>), using the filenames the markdown expects. Unzip at the repo root, commit,
+    and push — GitHub Pages builds the post automatically. Nothing is uploaded anywhere from this page.
+  </p>
+
+  <form id="composer-form" class="composer__form" onsubmit="return false;">
+    <label class="composer__field">
+      <span>Title</span>
+      <input type="text" id="f-title" placeholder="Trip to Haifa" required>
+    </label>
+
+    <label class="composer__field">
+      <span>Date</span>
+      <input type="date" id="f-date" required>
+    </label>
+
+    <label class="composer__field">
+      <span>Excerpt <small>(one-line summary shown on the grid card)</small></span>
+      <input type="text" id="f-excerpt" placeholder="A short caption for the card">
+    </label>
+
+    <label class="composer__field">
+      <span>Body <small>(markdown supported — bold, _italic_, [links](url), etc.)</small></span>
+      <textarea id="f-body" rows="8" placeholder="Write your post here..."></textarea>
+    </label>
+
+    <label class="composer__field">
+      <span>Images <small>(first image is used as the grid thumbnail)</small></span>
+      <input type="file" id="f-images" accept="image/*" multiple>
+    </label>
+
+    <div class="composer__actions">
+      <button type="button" id="btn-generate" class="btn btn--primary">
+        <i class="fas fa-file-archive" aria-hidden="true"></i> Generate post (.zip)
+      </button>
+      <button type="button" id="btn-reset" class="btn">Clear</button>
+    </div>
+  </form>
+
+  <section class="composer__preview" aria-label="Preview">
+    <h3>Live preview</h3>
+    <div id="preview-card" class="album-card" style="max-width: 320px;">
+      <div class="album-card__image" id="preview-image"></div>
+      <div class="album-card__body">
+        <h3 class="album-card__title" id="preview-title"><em>Title appears here</em></h3>
+        <p class="album-card__date" id="preview-date"></p>
+        <p class="album-card__excerpt" id="preview-excerpt"></p>
+      </div>
+    </div>
+
+    <h3>Generated markdown</h3>
+    <pre id="preview-md"></pre>
+
+    <h3>Instructions</h3>
+    <ol id="instructions">
+      <li>Click <strong>Generate post</strong>. A zip downloads.</li>
+      <li>Unzip it at the <em>repo root</em> — the zip already contains <code>_albums/...</code> and <code>images/album/...</code> paths.</li>
+      <li><code>git add _albums images/album &amp;&amp; git commit -m "album: new post" &amp;&amp; git push</code></li>
+    </ol>
+  </section>
+</div>
+
+<style>
+  .composer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2em; align-items: start; }
+  @media (max-width: 800px) { .composer { grid-template-columns: 1fr; } }
+  .composer__note { background: #f7f7f7; border-left: 3px solid #999; padding: .75em 1em; font-size: .9em; }
+  .composer__form { display: flex; flex-direction: column; gap: 1em; }
+  .composer__field { display: flex; flex-direction: column; gap: .3em; }
+  .composer__field > span { font-weight: 600; font-size: .9em; }
+  .composer__field > span small { font-weight: 400; color: #777; }
+  .composer__field input[type=text], .composer__field input[type=date], .composer__field textarea {
+    padding: .55em .7em; border: 1px solid #ccc; border-radius: 4px; font: inherit; width: 100%;
+  }
+  .composer__field textarea { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; }
+  .composer__actions { display: flex; gap: .5em; }
+  .composer__preview pre {
+    background: #1e1e1e; color: #f1f1f1; padding: 1em; border-radius: 4px;
+    overflow-x: auto; font-size: .82em; line-height: 1.4;
+  }
+  .composer__preview h3 { margin-top: 1.2em; }
+  .album-card { border: 1px solid #e6e6e6; border-radius: 6px; overflow: hidden; background: #fff; }
+  .album-card__image { width: 100%; aspect-ratio: 4 / 3; background: #f4f4f4; overflow: hidden; }
+  .album-card__image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .album-card__body { padding: .85em 1em 1em; }
+  .album-card__title { margin: 0 0 .25em; font-size: 1.05em; line-height: 1.3; }
+  .album-card__date { margin: 0 0 .5em; color: #777; font-size: .85em; }
+  .album-card__excerpt { margin: 0; font-size: .9em; color: #444; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const titleEl = $('f-title');
+  const dateEl = $('f-date');
+  const excerptEl = $('f-excerpt');
+  const bodyEl = $('f-body');
+  const imagesEl = $('f-images');
+
+  const pTitle = $('preview-title');
+  const pDate = $('preview-date');
+  const pExcerpt = $('preview-excerpt');
+  const pImage = $('preview-image');
+  const pMd = $('preview-md');
+
+  const today = new Date().toISOString().slice(0, 10);
+  dateEl.value = today;
+
+  function slugify(s) {
+    return (s || '').toLowerCase()
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'post';
+  }
+
+  function extFor(file) {
+    const m = /\.([a-zA-Z0-9]+)$/.exec(file.name);
+    if (m) return m[1].toLowerCase();
+    // fallback by mime
+    const map = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/heic': 'heic' };
+    return map[file.type] || 'bin';
+  }
+
+  function imageNamesForPost(slug, files) {
+    return Array.from(files).map((f, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      return `${slug}-${n}.${extFor(f)}`;
+    });
+  }
+
+  function buildMarkdown() {
+    const title = titleEl.value.trim();
+    const date = dateEl.value || today;
+    const excerpt = excerptEl.value.trim();
+    const body = bodyEl.value;
+    const slug = slugify(title);
+    const files = imagesEl.files || [];
+    const names = imageNamesForPost(slug, files);
+
+    const fm = [];
+    fm.push('---');
+    fm.push(`title: ${JSON.stringify(title || 'Untitled')}`);
+    fm.push(`date: ${date}`);
+    if (excerpt) fm.push(`excerpt: ${JSON.stringify(excerpt)}`);
+    if (names.length) {
+      fm.push('images:');
+      for (const n of names) fm.push(`  - /images/album/${n}`);
+    }
+    fm.push('---');
+    fm.push('');
+
+    let inlineImages = '';
+    if (names.length) {
+      inlineImages = names.map((n) => `![](/images/album/${n})`).join('\n\n') + '\n\n';
+    }
+
+    return {
+      slug,
+      date,
+      filename: `${date}-${slug}.md`,
+      imageNames: names,
+      content: fm.join('\n') + inlineImages + (body || '') + '\n',
+    };
+  }
+
+  function updatePreview() {
+    const built = buildMarkdown();
+    pTitle.textContent = titleEl.value.trim() || 'Untitled';
+    pDate.textContent = built.date ? new Date(built.date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+    pExcerpt.textContent = excerptEl.value.trim();
+    pMd.textContent = built.content;
+
+    pImage.innerHTML = '';
+    const files = imagesEl.files || [];
+    if (files.length > 0) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(files[0]);
+      img.alt = '';
+      pImage.appendChild(img);
+    }
+  }
+
+  ['input', 'change'].forEach((ev) => {
+    titleEl.addEventListener(ev, updatePreview);
+    dateEl.addEventListener(ev, updatePreview);
+    excerptEl.addEventListener(ev, updatePreview);
+    bodyEl.addEventListener(ev, updatePreview);
+    imagesEl.addEventListener(ev, updatePreview);
+  });
+
+  $('btn-generate').addEventListener('click', async () => {
+    if (typeof JSZip === 'undefined') {
+      alert('Could not load JSZip (check your network). Falling back to downloading just the markdown.');
+      const built = buildMarkdown();
+      const blob = new Blob([built.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = built.filename; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    const built = buildMarkdown();
+    if (!titleEl.value.trim()) {
+      alert('Please enter a title.');
+      titleEl.focus();
+      return;
+    }
+    const zip = new JSZip();
+    zip.folder('_albums').file(built.filename, built.content);
+    const imgFolder = zip.folder('images').folder('album');
+    const files = imagesEl.files || [];
+    for (let i = 0; i < files.length; i++) {
+      imgFolder.file(built.imageNames[i], files[i]);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `album-${built.date}-${built.slug}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  $('btn-reset').addEventListener('click', () => {
+    titleEl.value = '';
+    excerptEl.value = '';
+    bodyEl.value = '';
+    imagesEl.value = '';
+    dateEl.value = today;
+    updatePreview();
+  });
+
+  updatePreview();
+})();
+</script>
