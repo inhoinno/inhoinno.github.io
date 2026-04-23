@@ -1,31 +1,31 @@
 ---
 layout: archive
-title: "Album"
-permalink: /album/
+title: "Memes"
+permalink: /album/memes/
 author_profile: true
 ---
 
 {% include base_path %}
 
 <nav class="album-subnav">
-  <a href="{{ base_path }}/album/" class="album-subnav__link is-active">All</a>
-  <a href="{{ base_path }}/album/memes/" class="album-subnav__link">Memes</a>
+  <a href="{{ base_path }}/album/" class="album-subnav__link">All</a>
+  <a href="{{ base_path }}/album/memes/" class="album-subnav__link is-active">Memes</a>
   <span class="album-subnav__spacer"></span>
   <a href="{{ base_path }}/album/new/" class="btn btn--primary btn--small">
-    <i class="fas fa-plus" aria-hidden="true"></i> New post
+    <i class="fas fa-plus" aria-hidden="true"></i> New meme
   </a>
 </nav>
 
 {% assign sorted = site.albums | sort: "date" | reverse %}
-{% assign visible = "" | split: "" %}
+{% assign memes = "" | split: "" %}
 {% for post in sorted %}
-  {% unless post.path contains '/memes/' or post.path contains '_template' %}
-    {% assign visible = visible | push: post %}
-  {% endunless %}
+  {% if post.path contains '/memes/' %}
+    {% assign memes = memes | push: post %}
+  {% endif %}
 {% endfor %}
 
 <div class="album-grid">
-  {% for post in visible %}
+  {% for post in memes %}
     <article class="album-card">
       <a href="{{ base_path }}{{ post.url }}" class="album-card__link">
         {% if post.images and post.images.size > 0 %}
@@ -43,8 +43,8 @@ author_profile: true
   {% endfor %}
 </div>
 
-{% if visible.size == 0 %}
-  <p><em>No posts yet. Hit <strong>New post</strong> above to create one.</em></p>
+{% if memes.size == 0 %}
+  <p><em>No memes yet. Hit <strong>New meme</strong> above — the composer's <em>Section: Memes</em> option routes files into <code>_albums/memes/</code>.</em></p>
 {% endif %}
 
 <style>

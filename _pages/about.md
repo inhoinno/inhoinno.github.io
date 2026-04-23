@@ -13,17 +13,17 @@ I am a Ph.D. student in Computer Science at **Virginia Tech**, co-advised by [Hu
 Before Virginia Tech, I earned my M.S. (2023) and B.S. (2022) in Computer Science at **Dankook University** in Korea, advised by [Jongmoo Choi](http://embedded.dankook.ac.kr/~choijm/). My master's thesis studied the design tradeoffs in ZNS SSD performance. In Summer 2024, I interned with Samsung Electronics on the Controller Architecture Team (CAT) in San Jose, modeling HW-SW co-design solutions for NVMe FDP storage.
 
 ## Research interests
-
-- **Storage systems** — NVMe SSDs, Flexible Data Placement (FDP), Zoned Namespaces (ZNS), RAID
+- **LLM accelerator/memory expander** - Next generation memory devices research for rack scale LLM serving (HBM, CXL)
+- **Storage systems** — Flexible Data Placement (FDP) NVMe SSDs, Zoned Namespaces (ZNS), RAID
 - **File systems and the kernel I/O stack**
 - **HW-SW co-design** for predictable latency and high throughput
 - **Emulation and characterization** of emerging storage devices
 
 ## News
-
+- **Apr 2026** — Accepted Summer 2026 internship at **SK Hynix America**, LLM Serving System Research (San Jose, CA).
 - **Dec 2025** — *Characterizing and Emulating FDP SSDs with Warp* accepted to **FAST '26**.
-- **May 2024** — Started a summer internship at **Samsung Electronics** (CAT, San Jose).
 - **Jan 2025** — *CRAZNS: A Case for Conventional Namespace Support for RAID with ZNS SSDs* accepted to **SAC '25**.
+- **May 2024** — Started a summer internship at **Samsung Electronics** (CAT, San Jose, CA).
 - **Aug 2023** — Started my Ph.D. at **Virginia Tech**.
 - **Jun 2023** — *ConfZNS* presented at **SYSTOR '23**.
 

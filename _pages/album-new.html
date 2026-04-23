@@ -19,6 +19,12 @@ author_profile: false
   </p>
 
   <form id="composer-form" class="composer__form" onsubmit="return false;">
+    <fieldset class="composer__field composer__section">
+      <legend><span>Section</span></legend>
+      <label><input type="radio" name="f-section" value="album" checked> Album</label>
+      <label><input type="radio" name="f-section" value="memes"> Memes</label>
+    </fieldset>
+
     <label class="composer__field">
       <span>Title</span>
       <input type="text" id="f-title" placeholder="Trip to Haifa" required>
@@ -68,8 +74,14 @@ author_profile: false
 
     <h3>Instructions</h3>
     <ol id="instructions">
+      <li>Pick a <strong>Section</strong> above (Album or Memes). The zip routes files accordingly:
+        <ul style="margin:.3em 0 .3em 1.1em;">
+          <li><strong>Album</strong> → <code>_albums/</code> &amp; <code>images/album/</code></li>
+          <li><strong>Memes</strong> → <code>_albums/memes/</code> &amp; <code>images/album/memes/</code></li>
+        </ul>
+      </li>
       <li>Click <strong>Generate post</strong>. A zip downloads.</li>
-      <li>Unzip it at the <em>repo root</em> — the zip already contains <code>_albums/...</code> and <code>images/album/...</code> paths.</li>
+      <li>Unzip at the <em>repo root</em> — the zip's top-level folders already match the repo layout.</li>
       <li><code>git add _albums images/album &amp;&amp; git commit -m "album: new post" &amp;&amp; git push</code></li>
     </ol>
   </section>
@@ -87,6 +99,9 @@ author_profile: false
     padding: .55em .7em; border: 1px solid #ccc; border-radius: 4px; font: inherit; width: 100%;
   }
   .composer__field textarea { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; }
+  .composer__section { border: 1px solid #ddd; border-radius: 4px; padding: .5em .9em; }
+  .composer__section legend { padding: 0 .3em; font-size: .85em; }
+  .composer__section label { margin-right: 1.5em; font-weight: 400; }
   .composer__actions { display: flex; gap: .5em; }
   .composer__preview pre {
     background: #1e1e1e; color: #f1f1f1; padding: 1em; border-radius: 4px;
@@ -144,6 +159,26 @@ author_profile: false
     });
   }
 
+  function currentSection() {
+    const el = document.querySelector('input[name="f-section"]:checked');
+    return el ? el.value : 'album';
+  }
+
+  function paths(section) {
+    if (section === 'memes') {
+      return {
+        mdDir: '_albums/memes',
+        imgDir: 'images/album/memes',
+        imgUrlPrefix: '/images/album/memes',
+      };
+    }
+    return {
+      mdDir: '_albums',
+      imgDir: 'images/album',
+      imgUrlPrefix: '/images/album',
+    };
+  }
+
   function buildMarkdown() {
     const title = titleEl.value.trim();
     const date = dateEl.value || today;
@@ -152,6 +187,8 @@ author_profile: false
     const slug = slugify(title);
     const files = imagesEl.files || [];
     const names = imageNamesForPost(slug, files);
+    const section = currentSection();
+    const p = paths(section);
 
     const fm = [];
     fm.push('---');
@@ -160,19 +197,21 @@ author_profile: false
     if (excerpt) fm.push(`excerpt: ${JSON.stringify(excerpt)}`);
     if (names.length) {
       fm.push('images:');
-      for (const n of names) fm.push(`  - /images/album/${n}`);
+      for (const n of names) fm.push(`  - ${p.imgUrlPrefix}/${n}`);
     }
     fm.push('---');
     fm.push('');
 
     let inlineImages = '';
     if (names.length) {
-      inlineImages = names.map((n) => `![](/images/album/${n})`).join('\n\n') + '\n\n';
+      inlineImages = names.map((n) => `![](${p.imgUrlPrefix}/${n})`).join('\n\n') + '\n\n';
     }
 
     return {
       slug,
       date,
+      section,
+      paths: p,
       filename: `${date}-${slug}.md`,
       imageNames: names,
       content: fm.join('\n') + inlineImages + (body || '') + '\n',
@@ -203,6 +242,9 @@ author_profile: false
     bodyEl.addEventListener(ev, updatePreview);
     imagesEl.addEventListener(ev, updatePreview);
   });
+  document.querySelectorAll('input[name="f-section"]').forEach((el) => {
+    el.addEventListener('change', updatePreview);
+  });
 
   $('btn-generate').addEventListener('click', async () => {
     if (typeof JSZip === 'undefined') {
@@ -221,17 +263,25 @@ author_profile: false
       return;
     }
     const zip = new JSZip();
-    zip.folder('_albums').file(built.filename, built.content);
-    const imgFolder = zip.folder('images').folder('album');
+    // _albums/ or _albums/memes/
+    let mdFolder = zip.folder('_albums');
+    if (built.section === 'memes') mdFolder = mdFolder.folder('memes');
+    mdFolder.file(built.filename, built.content);
+
+    // images/album/ or images/album/memes/
+    let imgFolder = zip.folder('images').folder('album');
+    if (built.section === 'memes') imgFolder = imgFolder.folder('memes');
     const files = imagesEl.files || [];
     for (let i = 0; i < files.length; i++) {
       imgFolder.file(built.imageNames[i], files[i]);
     }
+
     const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `album-${built.date}-${built.slug}.zip`;
+    const prefix = built.section === 'memes' ? 'meme' : 'album';
+    a.download = `${prefix}-${built.date}-${built.slug}.zip`;
     document.body.appendChild(a);
     a.click();
     a.remove();
