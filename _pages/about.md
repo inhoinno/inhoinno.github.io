@@ -31,4 +31,4 @@ Before Virginia Tech, I earned my M.S. (2023) and B.S. (2022) in Computer Scienc
 
 Email: [inhoinno@vt.edu](mailto:inhoinno@vt.edu) · GitHub: [inhoinno](https://github.com/inhoinno) · LinkedIn: [inhoinno](https://www.linkedin.com/in/inhoinno/)
 
-[**Download CV (PDF)**](/files/InhoSong_CV.pdf)
+[**Download CV (PDF)**](/files/Inho_CV_FAANG.pdf)
