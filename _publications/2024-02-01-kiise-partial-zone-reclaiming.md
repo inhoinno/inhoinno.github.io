@@ -1,6 +1,7 @@
 ---
 title: "Overcoming a Zone Reclaiming Overhead with Partial-Zone Reclaiming"
 collection: publications
+category: journal
 permalink: /publication/2024-02-01-kiise-partial-zone-reclaiming
 excerpt: "A partial-zone reclaiming technique that interleaves in-flight host requests with the zone reclaiming process to mitigate reclaim-induced tail latency. Improves host request latency by up to 8% on average and reduces zone reclaiming time by up to 41%."
 date: 2024-02-01

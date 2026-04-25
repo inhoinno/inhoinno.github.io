@@ -1,6 +1,7 @@
 ---
 title: "Method for analyzing vehicle forensic and computing device for execution the same"
 collection: publications
+category: patent
 permalink: /publication/2022-10-31-patent-vehicle-forensic
 excerpt: "Granted Korean patent (10-2022-0139234) covering a method and computing device for vehicle forensic analysis — retrieving critical artifacts from modern in-vehicle storage and reconstructing deleted data through physical dump and metadata analysis."
 date: 2022-10-31

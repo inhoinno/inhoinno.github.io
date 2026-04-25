@@ -11,6 +11,26 @@ author_profile: true
 
 {% include base_path %}
 
-{% for post in site.publications reversed %}
+{% assign papers = site.publications | where_exp: "p", "p.category == nil" | sort: "date" | reverse %}
+{% assign journals = site.publications | where: "category", "journal" | sort: "date" | reverse %}
+{% assign patents = site.publications | where: "category", "patent" | sort: "date" | reverse %}
+
+{% for post in papers %}
   {% include archive-single.html %}
 {% endfor %}
+
+{% if journals.size > 0 %}
+<h2>Journal</h2>
+
+{% for post in journals %}
+  {% include archive-single.html %}
+{% endfor %}
+{% endif %}
+
+{% if patents.size > 0 %}
+<h2>Patents</h2>
+
+{% for post in patents %}
+  {% include archive-single.html %}
+{% endfor %}
+{% endif %}
