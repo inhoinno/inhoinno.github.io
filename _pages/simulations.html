@@ -1,0 +1,755 @@
+---
+layout: archive
+title: "Simulations"
+permalink: /simulations/
+author_profile: true
+---
+
+{% include base_path %}
+
+<p>Interactive diagrams for concepts I work on: CXL memory tiering, NVMe FDP placement, virtual-memory translation, and vLLM PagedAttention. Click the controls under each diagram to step through.</p>
+
+<nav class="sim-subnav">
+  <a href="#" class="sim-subnav__link is-active" data-tab="cxl">CXL</a>
+  <a href="#" class="sim-subnav__link" data-tab="fdp">FDP</a>
+  <a href="#" class="sim-subnav__link" data-tab="vmem">Virtual Memory</a>
+  <a href="#" class="sim-subnav__link" data-tab="vllm">vLLM PagedAttention</a>
+</nav>
+
+<style>
+  .sim-subnav {
+    display: flex; flex-wrap: wrap; gap: 0.4em;
+    border-bottom: 2px solid #ddd;
+    margin: 1em 0 1.2em;
+  }
+  .sim-subnav__link {
+    padding: 0.45em 0.9em;
+    font-size: 0.95rem;
+    color: #444;
+    border-radius: 4px 4px 0 0;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+  .sim-subnav__link:hover { background: #f4f4f4; color: #000; }
+  .sim-subnav__link.is-active {
+    color: #000; font-weight: 600;
+    border-bottom-color: #444; background: #f9f9f9;
+  }
+  .sim-panel { display: none; }
+  .sim-panel.is-active { display: block; }
+
+  .sim-panel h2 { margin-top: 0.4em; }
+  .sim-panel p { line-height: 1.55; }
+
+  .sim-stage {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 1em;
+    margin: 1em 0;
+    overflow-x: auto;
+  }
+  .sim-stage svg { display: block; max-width: 100%; height: auto; }
+
+  .sim-controls { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.6em 0; }
+  .sim-controls button {
+    padding: 0.4em 0.85em;
+    font-size: 0.88rem;
+    background: #fff;
+    border: 1px solid #888;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .sim-controls button:hover { background: #f0f0f0; }
+  .sim-controls button.is-primary { background: #444; color: #fff; border-color: #444; }
+  .sim-controls button.is-primary:hover { background: #222; }
+
+  .sim-stats {
+    display: flex; flex-wrap: wrap; gap: 1.2em;
+    margin: 0.8em 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88rem;
+  }
+  .sim-stats span { color: #555; }
+  .sim-stats b { color: #111; }
+
+  .sim-caption { font-size: 0.88rem; color: #666; margin-top: 0.4em; }
+
+  /* shared SVG colors */
+  .sim-tier-fast  { fill: #d9f0d9; stroke: #4a8b4a; }
+  .sim-tier-mid   { fill: #fdebc7; stroke: #c08a2a; }
+  .sim-tier-slow  { fill: #f3d2d2; stroke: #aa4040; }
+
+  .sim-cell      { stroke: #888; }
+  .sim-cell-empty { fill: #fff; }
+  .sim-cell-valid { fill: #b3d8a8; }
+  .sim-cell-stale { fill: #d8a8a8; }
+  .sim-cell-hot   { fill: #ffd97d; }
+  .sim-cell-cold  { fill: #c0d8e8; }
+</style>
+
+<!-- ====================================================================
+     CXL — Memory tiering
+==================================================================== -->
+<section class="sim-panel is-active" data-panel="cxl">
+  <h2>CXL — coherent memory tiering</h2>
+  <p>CXL.mem attaches memory to the host across PCIe with cache coherence, sitting between local DRAM and SSD on the latency curve. The diagram below issues a load to the chosen tier; the dot's travel time scales logarithmically with real-world latency.</p>
+
+  <div class="sim-stage">
+    <svg id="cxl-svg" viewBox="0 0 720 320" role="img" aria-label="CXL tiering diagram">
+      <!-- CPU -->
+      <rect x="20" y="130" width="100" height="60" rx="4" fill="#eef" stroke="#446"/>
+      <text x="70" y="155" text-anchor="middle" font-size="14" font-weight="600">CPU</text>
+      <text x="70" y="175" text-anchor="middle" font-size="11" fill="#446">core + caches</text>
+
+      <!-- Tiers -->
+      <g class="sim-tier-fast">
+        <rect x="240" y="40"  width="440" height="60" rx="4" stroke-width="1.5"/>
+      </g>
+      <text x="260" y="65"  font-size="14" font-weight="600">Local DRAM</text>
+      <text x="260" y="85"  font-size="12" fill="#333">~80 ns · ~32 GB · DDR5</text>
+
+      <g class="sim-tier-mid">
+        <rect x="240" y="130" width="440" height="60" rx="4" stroke-width="1.5"/>
+      </g>
+      <text x="260" y="155" font-size="14" font-weight="600">CXL.mem (Type 3)</text>
+      <text x="260" y="175" font-size="12" fill="#333">~250 ns · ~512 GB · coherent over PCIe</text>
+
+      <g class="sim-tier-slow">
+        <rect x="240" y="220" width="440" height="60" rx="4" stroke-width="1.5"/>
+      </g>
+      <text x="260" y="245" font-size="14" font-weight="600">NVMe SSD</text>
+      <text x="260" y="265" font-size="12" fill="#333">~50 µs · ~4 TB · block-addressed</text>
+
+      <!-- Wires -->
+      <line x1="120" y1="160" x2="240" y2="70"  stroke="#888" stroke-dasharray="3,3"/>
+      <line x1="120" y1="160" x2="240" y2="160" stroke="#888" stroke-dasharray="3,3"/>
+      <line x1="120" y1="160" x2="240" y2="250" stroke="#888" stroke-dasharray="3,3"/>
+
+      <!-- Animated request dot -->
+      <circle id="cxl-dot" cx="120" cy="160" r="8" fill="#222" opacity="0"/>
+    </svg>
+  </div>
+
+  <div class="sim-controls">
+    <button class="is-primary" data-cxl="dram">Load from DRAM</button>
+    <button class="is-primary" data-cxl="cxl">Load from CXL</button>
+    <button class="is-primary" data-cxl="ssd">Load from SSD</button>
+  </div>
+  <div class="sim-stats">
+    <span>last latency: <b id="cxl-last">—</b></span>
+    <span>avg latency: <b id="cxl-avg">—</b></span>
+    <span>requests: <b id="cxl-count">0</b></span>
+  </div>
+  <p class="sim-caption">Animation duration is log-scaled so you can feel the gap; raw latency is shown numerically.</p>
+</section>
+
+<!-- ====================================================================
+     FDP — Flexible Data Placement
+==================================================================== -->
+<section class="sim-panel" data-panel="fdp">
+  <h2>FDP — Flexible Data Placement on NVMe SSDs</h2>
+  <p>The host writes a stream of pages with mixed lifetimes — some long-lived (green), some short-lived and soon to be invalidated (orange). The two SSDs receive the <em>same</em> workload. Without FDP, lifetimes mix in every erase block. With FDP, the host hints a Reclaim Unit Handle (RUH) per write so pages with similar lifetimes share blocks.</p>
+
+  <div class="sim-stage">
+    <svg id="fdp-svg" viewBox="0 0 760 360" role="img" aria-label="FDP placement comparison">
+      <!-- Without FDP -->
+      <text x="20"  y="22" font-size="14" font-weight="600">Without FDP — single placement</text>
+      <g id="fdp-noplain"></g>
+      <!-- With FDP -->
+      <text x="400" y="22" font-size="14" font-weight="600">With FDP — RUH per lifetime</text>
+      <g id="fdp-plain"></g>
+    </svg>
+  </div>
+
+  <div class="sim-controls">
+    <button class="is-primary" data-fdp="step">Step (1 host write)</button>
+    <button class="is-primary" data-fdp="run">Auto-run 30 writes</button>
+    <button data-fdp="reset">Reset</button>
+  </div>
+  <div class="sim-stats">
+    <span>host writes: <b id="fdp-host">0</b></span>
+    <span>NAND writes (no FDP): <b id="fdp-nand-no">0</b></span>
+    <span>NAND writes (FDP): <b id="fdp-nand-yes">0</b></span>
+    <span>WAF (no FDP): <b id="fdp-waf-no">1.00</b></span>
+    <span>WAF (FDP): <b id="fdp-waf-yes">1.00</b></span>
+  </div>
+  <p class="sim-caption">A block is reclaimed when full; valid pages are relocated, then the block is erased. Mixed-lifetime blocks force relocations and inflate WAF.</p>
+</section>
+
+<!-- ====================================================================
+     Virtual Memory
+==================================================================== -->
+<section class="sim-panel" data-panel="vmem">
+  <h2>Virtual memory — page-table walk and TLB</h2>
+  <p>The CPU emits a virtual address split into a virtual page number (VPN) and offset. The TLB caches recent VPN→PFN translations; on a miss, the MMU walks the page table to find the physical frame, then refills the TLB.</p>
+
+  <div class="sim-stage">
+    <svg id="vmem-svg" viewBox="0 0 760 360" role="img" aria-label="Virtual memory translation">
+      <!-- VA -->
+      <rect x="10"  y="20" width="200" height="40" fill="#eef" stroke="#446"/>
+      <text x="20"  y="46" font-size="13">VA = </text>
+      <text id="vmem-va" x="55" y="46" font-size="13" font-family="ui-monospace,monospace">0x00000</text>
+      <text x="20"  y="78" font-size="11" fill="#666">VPN | offset</text>
+
+      <!-- TLB -->
+      <rect x="260" y="20" width="220" height="120" fill="#fff" stroke="#888"/>
+      <text x="270" y="40" font-size="13" font-weight="600">TLB (4 entries)</text>
+      <g id="vmem-tlb"></g>
+
+      <!-- Page table -->
+      <rect x="260" y="170" width="220" height="170" fill="#fff" stroke="#888"/>
+      <text x="270" y="190" font-size="13" font-weight="600">Page table (8 entries)</text>
+      <g id="vmem-pt"></g>
+
+      <!-- Physical memory -->
+      <rect x="520" y="20" width="220" height="320" fill="#fff" stroke="#888"/>
+      <text x="530" y="40" font-size="13" font-weight="600">Physical memory</text>
+      <g id="vmem-pm"></g>
+
+      <!-- Arrow path -->
+      <path id="vmem-arrow" d="" fill="none" stroke="#c33" stroke-width="2" marker-end="url(#vmem-head)" opacity="0"/>
+      <defs>
+        <marker id="vmem-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#c33"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="sim-controls">
+    <button class="is-primary" data-vmem="random">Random access</button>
+    <button class="is-primary" data-vmem="locality">Access with locality</button>
+    <button data-vmem="reset">Reset TLB</button>
+  </div>
+  <div class="sim-stats">
+    <span>accesses: <b id="vmem-n">0</b></span>
+    <span>TLB hits: <b id="vmem-hits">0</b></span>
+    <span>TLB misses: <b id="vmem-misses">0</b></span>
+    <span>hit rate: <b id="vmem-rate">—</b></span>
+  </div>
+  <p class="sim-caption">Single-level page table for clarity (real x86-64 has four levels). TLB uses LRU eviction.</p>
+</section>
+
+<!-- ====================================================================
+     vLLM PagedAttention
+==================================================================== -->
+<section class="sim-panel" data-panel="vllm">
+  <h2>vLLM — PagedAttention KV cache</h2>
+  <p>Each LLM request grows its KV cache one token at a time. Reserving the maximum sequence length up front (left) wastes GPU memory because most requests finish early. PagedAttention (right) splits the KV cache into fixed-size blocks and allocates them on demand from a shared pool, with each request keeping a logical-to-physical block table — like a page table for the KV cache.</p>
+
+  <div class="sim-stage">
+    <svg id="vllm-svg" viewBox="0 0 760 380" role="img" aria-label="vLLM PagedAttention comparison">
+      <text x="20"  y="22" font-size="14" font-weight="600">Contiguous reservation</text>
+      <g id="vllm-cont"></g>
+      <text x="400" y="22" font-size="14" font-weight="600">PagedAttention</text>
+      <g id="vllm-paged"></g>
+    </svg>
+  </div>
+
+  <div class="sim-controls">
+    <button class="is-primary" data-vllm="tick">Generate one token (all requests)</button>
+    <button class="is-primary" data-vllm="run">Auto-run</button>
+    <button data-vllm="reset">Reset</button>
+  </div>
+  <div class="sim-stats">
+    <span>step: <b id="vllm-step">0</b></span>
+    <span>contiguous util: <b id="vllm-util-c">0%</b></span>
+    <span>paged util: <b id="vllm-util-p">0%</b></span>
+    <span>contiguous oom: <b id="vllm-oom-c">0</b></span>
+    <span>paged oom: <b id="vllm-oom-p">0</b></span>
+  </div>
+  <p class="sim-caption">Block size = 4 tokens. Pool = 24 blocks. Requests randomly finish each step (geometric).</p>
+</section>
+
+<script>
+(function () {
+  // ---------- subtab switcher ----------
+  var $links = document.querySelectorAll('.sim-subnav__link');
+  var $panels = document.querySelectorAll('.sim-panel');
+  $links.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var tab = a.dataset.tab;
+      $links.forEach(function (l) { l.classList.toggle('is-active', l === a); });
+      $panels.forEach(function (p) { p.classList.toggle('is-active', p.dataset.panel === tab); });
+    });
+  });
+
+  // ---------- CXL ----------
+  (function cxlSim() {
+    var dot = document.getElementById('cxl-svg').querySelector('#cxl-dot');
+    var $last = document.getElementById('cxl-last');
+    var $avg  = document.getElementById('cxl-avg');
+    var $cnt  = document.getElementById('cxl-count');
+    var totalNs = 0, count = 0, busy = false;
+
+    var TIERS = {
+      dram: { y: 70,  ns: 80,        label: '80 ns' },
+      cxl:  { y: 160, ns: 250,       label: '250 ns' },
+      ssd:  { y: 250, ns: 50000,     label: '50 µs' }
+    };
+
+    function animate(targetY, durMs, ns) {
+      busy = true;
+      dot.setAttribute('opacity', '1');
+      var startX = 120, endX = 460, startY = 160;
+      var t0 = performance.now();
+      function frame(t) {
+        var p = Math.min((t - t0) / durMs, 1);
+        // there-and-back: 0..0.5 forward, 0.5..1 back
+        var phase = p < 0.5 ? p * 2 : (1 - p) * 2;
+        var x = startX + (endX - startX) * phase;
+        var y = startY + (targetY - startY) * phase;
+        dot.setAttribute('cx', x);
+        dot.setAttribute('cy', y);
+        if (p < 1) requestAnimationFrame(frame);
+        else {
+          dot.setAttribute('opacity', '0');
+          busy = false;
+          totalNs += ns; count += 1;
+          $last.textContent = formatNs(ns);
+          $avg.textContent  = formatNs(totalNs / count);
+          $cnt.textContent  = count;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    function formatNs(ns) {
+      if (ns >= 1000000) return (ns / 1000000).toFixed(2) + ' ms';
+      if (ns >= 1000)    return (ns / 1000).toFixed(1)   + ' µs';
+      return Math.round(ns) + ' ns';
+    }
+    document.querySelectorAll('[data-cxl]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (busy) return;
+        var t = TIERS[b.dataset.cxl];
+        // log-scaled animation duration: 280ms .. 1400ms
+        var dur = 200 + 200 * Math.log10(t.ns);
+        animate(t.y, dur, t.ns);
+      });
+    });
+  })();
+
+  // ---------- FDP ----------
+  (function fdpSim() {
+    var BLOCKS = 4, PAGES = 6;        // each SSD: 4 blocks × 6 pages
+    var hostWrites = 0;
+    // 0 = empty, 1 = valid-long, 2 = valid-short, -1 = stale
+    function makeSSD() {
+      return Array.from({ length: BLOCKS }, function () { return Array(PAGES).fill(0); });
+    }
+    var noFDP = makeSSD();   // all pages share the placement
+    var ydFDP = makeSSD();   // pages 0–1 = long RUH, 2–3 = short RUH (we'll use blocks 0–1 long, 2–3 short)
+    var nandNo = 0, nandYes = 0;
+
+    var $svg     = document.getElementById('fdp-svg');
+    var $no      = document.getElementById('fdp-noplain');
+    var $yes     = document.getElementById('fdp-plain');
+    var $host    = document.getElementById('fdp-host');
+    var $nNo     = document.getElementById('fdp-nand-no');
+    var $nYes    = document.getElementById('fdp-nand-yes');
+    var $wNo     = document.getElementById('fdp-waf-no');
+    var $wYes    = document.getElementById('fdp-waf-yes');
+
+    function nextSlot(ssd, restrict) {
+      // restrict: undefined = any block; or array of block indexes
+      var range = restrict || [0, 1, 2, 3];
+      for (var bi = 0; bi < range.length; bi++) {
+        var b = range[bi];
+        for (var p = 0; p < PAGES; p++) {
+          if (ssd[b][p] === 0) return [b, p];
+        }
+      }
+      return null;
+    }
+
+    function gcIfNeeded(ssd) {
+      // if any block is full and has any valid pages mixed with stale, do GC on most-stale block
+      var moves = 0;
+      // pick a fully-written block to clean (full means no zeros)
+      var candidate = -1, mostStale = -1;
+      for (var b = 0; b < BLOCKS; b++) {
+        var full = ssd[b].every(function (v) { return v !== 0; });
+        if (!full) continue;
+        var stale = ssd[b].filter(function (v) { return v === -1; }).length;
+        var valid = ssd[b].filter(function (v) { return v > 0; }).length;
+        if (stale > 0 && valid > 0 && stale > mostStale) { mostStale = stale; candidate = b; }
+        // a fully-stale block is reclaimed instantly (no relocations)
+        if (valid === 0 && stale > 0) {
+          ssd[b] = Array(PAGES).fill(0);
+          return 0;
+        }
+      }
+      if (candidate < 0) return 0;
+      // Need an empty target block to relocate valid pages
+      var target = -1;
+      for (var t = 0; t < BLOCKS; t++) {
+        if (ssd[t].every(function (v) { return v === 0; })) { target = t; break; }
+      }
+      if (target < 0) return 0;  // can't GC if no spare block
+      var src = ssd[candidate];
+      for (var i = 0; i < PAGES; i++) {
+        if (src[i] > 0) {
+          // place into target
+          for (var j = 0; j < PAGES; j++) {
+            if (ssd[target][j] === 0) { ssd[target][j] = src[i]; moves++; break; }
+          }
+        }
+      }
+      ssd[candidate] = Array(PAGES).fill(0);
+      return moves;
+    }
+
+    // pre-generated workload so both SSDs see identical sequence
+    function nextWrite() {
+      // 50/50 long vs short; long lives long, short gets invalidated quickly
+      return Math.random() < 0.5 ? 1 : 2;
+    }
+
+    function ageStale(ssd, lifeShort) {
+      // lifeShort flag triggers occasional invalidation of short-lived pages
+      if (Math.random() < 0.4) {
+        var found = [];
+        for (var b = 0; b < BLOCKS; b++)
+          for (var p = 0; p < PAGES; p++)
+            if (ssd[b][p] === 2) found.push([b, p]);
+        if (found.length) {
+          var pick = found[Math.floor(Math.random() * found.length)];
+          ssd[pick[0]][pick[1]] = -1;
+        }
+      }
+    }
+
+    function step() {
+      var kind = nextWrite();
+      hostWrites++;
+
+      // Without FDP: pack into any available block (lowest first)
+      var slotA = nextSlot(noFDP);
+      if (slotA) { noFDP[slotA[0]][slotA[1]] = kind; nandNo++; }
+      ageStale(noFDP);
+      nandNo += gcIfNeeded(noFDP);
+
+      // With FDP: blocks 0–1 reserved for long, 2–3 for short
+      var ranges = (kind === 1) ? [0, 1] : [2, 3];
+      var slotB = nextSlot(ydFDP, ranges);
+      if (slotB) { ydFDP[slotB[0]][slotB[1]] = kind; nandYes++; }
+      ageStale(ydFDP);
+      nandYes += gcIfNeeded(ydFDP);
+
+      render();
+    }
+
+    function reset() {
+      noFDP = makeSSD(); ydFDP = makeSSD();
+      hostWrites = 0; nandNo = 0; nandYes = 0;
+      render();
+    }
+
+    function render() {
+      $no.innerHTML = renderSSD(noFDP, 20,  35, false);
+      $yes.innerHTML = renderSSD(ydFDP, 400, 35, true);
+      $host.textContent = hostWrites;
+      $nNo.textContent  = nandNo;
+      $nYes.textContent = nandYes;
+      $wNo.textContent  = hostWrites ? (nandNo / hostWrites).toFixed(2) : '1.00';
+      $wYes.textContent = hostWrites ? (nandYes / hostWrites).toFixed(2) : '1.00';
+    }
+
+    function renderSSD(ssd, x0, y0, withRUH) {
+      var s = '';
+      for (var b = 0; b < BLOCKS; b++) {
+        var by = y0 + b * 70;
+        s += '<text x="' + x0 + '" y="' + (by - 6) + '" font-size="11" fill="#444">block ' + b;
+        if (withRUH) s += (b < 2 ? ' (RUH-long)' : ' (RUH-short)');
+        s += '</text>';
+        for (var p = 0; p < PAGES; p++) {
+          var v = ssd[b][p];
+          var cls = v === 0 ? 'sim-cell-empty'
+                  : v === -1 ? 'sim-cell-stale'
+                  : v === 1 ? 'sim-cell-valid'
+                  : 'sim-cell-hot';
+          s += '<rect class="sim-cell ' + cls + '" x="' + (x0 + p * 50) + '" y="' + by
+             + '" width="46" height="46"/>';
+        }
+      }
+      return s;
+    }
+
+    var runHandle = null;
+    document.querySelector('[data-fdp="step"]').addEventListener('click', step);
+    document.querySelector('[data-fdp="run"]').addEventListener('click', function () {
+      if (runHandle) return;
+      var n = 0;
+      runHandle = setInterval(function () {
+        step(); n++;
+        if (n >= 30) { clearInterval(runHandle); runHandle = null; }
+      }, 120);
+    });
+    document.querySelector('[data-fdp="reset"]').addEventListener('click', function () {
+      if (runHandle) { clearInterval(runHandle); runHandle = null; }
+      reset();
+    });
+
+    reset();
+  })();
+
+  // ---------- Virtual Memory ----------
+  (function vmemSim() {
+    var TLB_SIZE = 4, PT_SIZE = 8, PM_FRAMES = 8;
+    var pageTable = []; // VPN -> PFN
+    for (var i = 0; i < PT_SIZE; i++) pageTable.push(i % PM_FRAMES); // identity-mod
+    var tlb = []; // [{vpn, pfn, lastUsed}]
+    var hits = 0, misses = 0, n = 0;
+    var lru = 0;
+
+    var $tlb   = document.getElementById('vmem-tlb');
+    var $pt    = document.getElementById('vmem-pt');
+    var $pm    = document.getElementById('vmem-pm');
+    var $va    = document.getElementById('vmem-va');
+    var $arrow = document.getElementById('vmem-arrow');
+    var $n     = document.getElementById('vmem-n');
+    var $h     = document.getElementById('vmem-hits');
+    var $m     = document.getElementById('vmem-misses');
+    var $r     = document.getElementById('vmem-rate');
+
+    function render(highlight) {
+      // TLB
+      var s = '';
+      for (var i = 0; i < TLB_SIZE; i++) {
+        var y = 50 + i * 22;
+        var e = tlb[i];
+        var hl = highlight && highlight.tlbRow === i ? '#ffe070' : '#fff';
+        s += '<rect x="270" y="' + y + '" width="200" height="20" fill="' + hl + '" stroke="#ccc"/>';
+        if (e) {
+          s += '<text x="280" y="' + (y + 14) + '" font-size="11" font-family="ui-monospace,monospace">VPN ' + e.vpn + ' → PFN ' + e.pfn + '</text>';
+        } else {
+          s += '<text x="280" y="' + (y + 14) + '" font-size="11" fill="#aaa">empty</text>';
+        }
+      }
+      $tlb.innerHTML = s;
+
+      // Page table
+      var s2 = '';
+      for (var v = 0; v < PT_SIZE; v++) {
+        var y2 = 200 + v * 17;
+        var hl2 = highlight && highlight.ptRow === v ? '#ffe070' : '#fff';
+        s2 += '<rect x="270" y="' + y2 + '" width="200" height="15" fill="' + hl2 + '" stroke="#ccc"/>';
+        s2 += '<text x="280" y="' + (y2 + 12) + '" font-size="11" font-family="ui-monospace,monospace">VPN ' + v + ' → PFN ' + pageTable[v] + '</text>';
+      }
+      $pt.innerHTML = s2;
+
+      // Phys mem
+      var s3 = '';
+      for (var f = 0; f < PM_FRAMES; f++) {
+        var y3 = 50 + f * 35;
+        var hl3 = highlight && highlight.pmFrame === f ? '#ffd97d' : '#eef5ff';
+        s3 += '<rect x="530" y="' + y3 + '" width="200" height="30" fill="' + hl3 + '" stroke="#88a"/>';
+        s3 += '<text x="540" y="' + (y3 + 19) + '" font-size="11" font-family="ui-monospace,monospace">frame ' + f + '</text>';
+      }
+      $pm.innerHTML = s3;
+    }
+
+    function access(vpn) {
+      n++;
+      $va.textContent = '0x' + (vpn * 256).toString(16).padStart(5, '0');
+      var hitIdx = -1;
+      for (var i = 0; i < tlb.length; i++) if (tlb[i] && tlb[i].vpn === vpn) { hitIdx = i; break; }
+      var pfn;
+      if (hitIdx >= 0) {
+        hits++;
+        pfn = tlb[hitIdx].pfn;
+        tlb[hitIdx].lastUsed = ++lru;
+        render({ tlbRow: hitIdx, pmFrame: pfn });
+      } else {
+        misses++;
+        pfn = pageTable[vpn];
+        // refill TLB (LRU)
+        var slot;
+        if (tlb.length < TLB_SIZE) { tlb.push({ vpn: vpn, pfn: pfn, lastUsed: ++lru }); slot = tlb.length - 1; }
+        else {
+          var oldest = 0;
+          for (var j = 1; j < TLB_SIZE; j++) if (tlb[j].lastUsed < tlb[oldest].lastUsed) oldest = j;
+          tlb[oldest] = { vpn: vpn, pfn: pfn, lastUsed: ++lru };
+          slot = oldest;
+        }
+        render({ ptRow: vpn, tlbRow: slot, pmFrame: pfn });
+      }
+      $n.textContent = n;
+      $h.textContent = hits;
+      $m.textContent = misses;
+      $r.textContent = (hits / n * 100).toFixed(0) + '%';
+    }
+
+    var localityCursor = 0;
+    document.querySelector('[data-vmem="random"]').addEventListener('click', function () {
+      access(Math.floor(Math.random() * PT_SIZE));
+    });
+    document.querySelector('[data-vmem="locality"]').addEventListener('click', function () {
+      // 70% reuse one of last 3 VPNs (working set), 30% new
+      if (Math.random() < 0.7 && localityCursor > 0) {
+        access(Math.floor(Math.random() * Math.min(3, localityCursor)));
+      } else {
+        access(localityCursor % PT_SIZE);
+        localityCursor++;
+      }
+    });
+    document.querySelector('[data-vmem="reset"]').addEventListener('click', function () {
+      tlb = []; hits = 0; misses = 0; n = 0; lru = 0; localityCursor = 0;
+      $n.textContent = 0; $h.textContent = 0; $m.textContent = 0; $r.textContent = '—';
+      $va.textContent = '0x00000';
+      render();
+    });
+
+    render();
+  })();
+
+  // ---------- vLLM PagedAttention ----------
+  (function vllmSim() {
+    var BLOCK_TOKENS = 4;
+    var POOL_BLOCKS = 24;
+    var MAX_LEN = 24;     // max tokens per request (= 6 blocks worth)
+    var REQS = 5;
+
+    var step = 0, oomC = 0, oomP = 0;
+    var requests; // [{id, len, alive, finishProb, contiguousReserve, paged: [block ids]}]
+    var freeC, freeP;
+
+    function init() {
+      step = 0; oomC = 0; oomP = 0;
+      // Contiguous mode reserves MAX_LEN/BLOCK_TOKENS = 6 blocks per request up front.
+      // Paged mode allocates one block as needed.
+      requests = [];
+      var reservePerReq = MAX_LEN / BLOCK_TOKENS;
+      var contiguousUsed = 0;
+      for (var i = 0; i < REQS; i++) {
+        var reserved = (contiguousUsed + reservePerReq <= POOL_BLOCKS);
+        if (reserved) contiguousUsed += reservePerReq;
+        requests.push({
+          id: i, len: 0, alive: true,
+          finishProb: 0.10 + Math.random() * 0.20,
+          contigReserved: reserved,
+          paged: []
+        });
+      }
+      freeC = POOL_BLOCKS - contiguousUsed;
+      freeP = POOL_BLOCKS;
+      for (var k = 0; k < requests.length; k++) {
+        if (requests[k].contigReserved) continue;
+        oomC++; // request rejected because no contiguous block group available
+      }
+      render();
+    }
+
+    function tick() {
+      step++;
+      requests.forEach(function (r) {
+        if (!r.alive) return;
+        // grow KV by 1 token
+        if (r.len < MAX_LEN) r.len += 1;
+        // paged allocation: claim a block if needed
+        var blocksNeeded = Math.ceil(r.len / BLOCK_TOKENS);
+        while (r.paged.length < blocksNeeded) {
+          if (freeP > 0) { r.paged.push(r.paged.length); freeP--; }
+          else { oomP++; break; }
+        }
+        // random finish
+        if (Math.random() < r.finishProb || r.len >= MAX_LEN) {
+          r.alive = false;
+          // paged: free its blocks
+          freeP += r.paged.length;
+          // contiguous: also frees, but the reservation was sized to MAX_LEN regardless
+          if (r.contigReserved) freeC += MAX_LEN / BLOCK_TOKENS;
+        }
+      });
+      render();
+    }
+
+    function render() {
+      var $c = document.getElementById('vllm-cont');
+      var $p = document.getElementById('vllm-paged');
+      var sC = '', sP = '';
+
+      // Contiguous: each request shows MAX_LEN slots, filled to .len if reserved, else "rejected"
+      var rowH = 50;
+      requests.forEach(function (r, i) {
+        var y = 40 + i * rowH;
+        sC += '<text x="20" y="' + (y + 14) + '" font-size="11" fill="#444">req ' + r.id + (r.alive ? '' : ' (done)') + '</text>';
+        if (!r.contigReserved) {
+          sC += '<text x="80" y="' + (y + 14) + '" font-size="11" fill="#a33">rejected (OOM at admit)</text>';
+        } else {
+          // Show MAX_LEN slots; first .len filled (valid), rest empty (reserved-but-unused)
+          for (var t = 0; t < MAX_LEN; t++) {
+            var color = !r.alive ? 'sim-cell-empty'
+                      : t < r.len ? 'sim-cell-hot'
+                      : 'sim-cell-cold';
+            sC += '<rect class="sim-cell ' + color + '" x="' + (75 + t * 12) + '" y="' + y + '" width="11" height="20"/>';
+          }
+        }
+      });
+      // Pool footer for contiguous
+      sC += '<text x="20" y="' + (40 + REQS * rowH + 8) + '" font-size="11" fill="#444">pool: ' + (POOL_BLOCKS - freeC) + '/' + POOL_BLOCKS + ' blocks reserved</text>';
+
+      // Paged: each request shows actual blocks held
+      requests.forEach(function (r, i) {
+        var y = 40 + i * rowH;
+        sP += '<text x="400" y="' + (y + 14) + '" font-size="11" fill="#444">req ' + r.id + (r.alive ? '' : ' (done)') + '</text>';
+        for (var b = 0; b < r.paged.length; b++) {
+          sP += '<rect class="sim-cell sim-cell-hot" x="' + (455 + b * 14) + '" y="' + y + '" width="13" height="20"/>';
+        }
+        // remaining "ghost" capacity to MAX_LEN/BLOCK_TOKENS blocks for visual scale
+        for (var b2 = r.paged.length; b2 < MAX_LEN / BLOCK_TOKENS; b2++) {
+          sP += '<rect class="sim-cell sim-cell-empty" x="' + (455 + b2 * 14) + '" y="' + y + '" width="13" height="20" stroke-dasharray="2,2"/>';
+        }
+      });
+      sP += '<text x="400" y="' + (40 + REQS * rowH + 8) + '" font-size="11" fill="#444">pool: ' + (POOL_BLOCKS - freeP) + '/' + POOL_BLOCKS + ' blocks in use</text>';
+
+      $c.innerHTML = sC; $p.innerHTML = sP;
+
+      document.getElementById('vllm-step').textContent = step;
+      document.getElementById('vllm-util-c').textContent =
+        Math.round(usefulTokens() / (POOL_BLOCKS * BLOCK_TOKENS) * 100 * (POOL_BLOCKS - freeC) / Math.max(1, POOL_BLOCKS)) + '%';
+      // Actually compute "useful / reserved" for contiguous:
+      var contigReserved = (POOL_BLOCKS - freeC) * BLOCK_TOKENS;
+      var contigUsed = 0;
+      requests.forEach(function (r) { if (r.contigReserved && r.alive) contigUsed += r.len; });
+      document.getElementById('vllm-util-c').textContent =
+        contigReserved > 0 ? Math.round(contigUsed / contigReserved * 100) + '%' : '—';
+
+      var pagedReserved = (POOL_BLOCKS - freeP) * BLOCK_TOKENS;
+      var pagedUsed = 0;
+      requests.forEach(function (r) { if (r.alive) pagedUsed += r.len; });
+      document.getElementById('vllm-util-p').textContent =
+        pagedReserved > 0 ? Math.round(pagedUsed / pagedReserved * 100) + '%' : '—';
+
+      document.getElementById('vllm-oom-c').textContent = oomC;
+      document.getElementById('vllm-oom-p').textContent = oomP;
+    }
+    function usefulTokens() {
+      var s = 0;
+      requests.forEach(function (r) { if (r.alive) s += r.len; });
+      return s;
+    }
+
+    var runHandle = null;
+    document.querySelector('[data-vllm="tick"]').addEventListener('click', tick);
+    document.querySelector('[data-vllm="run"]').addEventListener('click', function () {
+      if (runHandle) { clearInterval(runHandle); runHandle = null; return; }
+      runHandle = setInterval(function () {
+        tick();
+        if (requests.every(function (r) { return !r.alive; })) {
+          clearInterval(runHandle); runHandle = null;
+        }
+      }, 250);
+    });
+    document.querySelector('[data-vllm="reset"]').addEventListener('click', function () {
+      if (runHandle) { clearInterval(runHandle); runHandle = null; }
+      init();
+    });
+
+    init();
+  })();
+})();
+</script>

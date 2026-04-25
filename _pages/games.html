@@ -1,0 +1,389 @@
+---
+layout: archive
+title: "Games"
+permalink: /games/
+author_profile: true
+---
+
+{% include base_path %}
+
+<h2>Chess</h2>
+<p>Hot-seat two-player chess. Click or drag pieces to move. Built with
+  <a href="https://github.com/jhlywa/chess.js">chess.js</a> for rules and
+  <a href="https://chessboardjs.com/">chessboard.js</a> for the board.</p>
+
+<link rel="stylesheet"
+      href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+
+<style>
+  .chess-app { display: flex; flex-wrap: wrap; gap: 1.5em; margin: 1em 0 2em; }
+  .chess-app__board { width: 400px; max-width: 100%; touch-action: none; }
+  .chess-app__side { flex: 1; min-width: 220px; }
+
+  .chess-status {
+    font-weight: 600;
+    padding: 0.5em 0.8em;
+    background: #f4f4f4;
+    border-left: 4px solid #444;
+    margin-bottom: 0.8em;
+  }
+  .chess-status.is-over { border-left-color: #b00; }
+
+  .chess-controls button {
+    margin: 0 0.4em 0.4em 0;
+    padding: 0.4em 0.9em;
+    font-size: 0.9rem;
+  }
+
+  .chess-moves {
+    margin-top: 0.8em;
+    padding: 0.6em 0.8em;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .chess-moves:empty::before { content: "No moves yet."; color: #888; }
+
+  /* Square highlighting — !important needed to beat chessboard.js's color classes */
+  #chess-board .chess-sq--selected { background: #ffe070 !important; }
+  #chess-board .chess-sq--last     { background: #f6f37a !important; }
+  #chess-board .chess-sq--check    { background: #ff7b7b !important; }
+
+  /* Legal-move dots / capture rings */
+  #chess-board .chess-sq--legal { position: relative; }
+  #chess-board .chess-sq--legal::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 28%; height: 28%;
+    border-radius: 50%;
+    background: rgba(20, 20, 20, 0.28);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 5;
+  }
+  #chess-board .chess-sq--capture {
+    box-shadow: inset 0 0 0 4px rgba(180, 30, 30, 0.55);
+  }
+
+  /* Promotion picker modal */
+  .chess-promotion {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .chess-promotion.is-open { display: flex; }
+  .chess-promotion__inner {
+    background: #fff;
+    padding: 1.2em 1.4em 1em;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    text-align: center;
+  }
+  .chess-promotion__inner p { margin: 0 0 0.7em; font-weight: 600; }
+  .chess-promotion__buttons { display: flex; gap: 0.4em; }
+  .chess-promotion__buttons button {
+    width: 64px; height: 64px;
+    padding: 4px;
+    background: #f0d9b5;
+    border: 1px solid #888;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .chess-promotion__buttons button:hover { background: #e6c98c; }
+  .chess-promotion__buttons img { width: 100%; height: 100%; display: block; }
+</style>
+
+<div class="chess-app">
+  <div id="chess-board" class="chess-app__board"></div>
+  <div class="chess-app__side">
+    <div id="chess-status" class="chess-status">White to move</div>
+    <div class="chess-controls">
+      <button id="chess-undo" class="btn btn--inverse btn--small">Undo</button>
+      <button id="chess-reset" class="btn btn--inverse btn--small">Reset</button>
+      <button id="chess-flip" class="btn btn--inverse btn--small">Flip board</button>
+    </div>
+    <div id="chess-moves" class="chess-moves"></div>
+  </div>
+</div>
+
+<div id="chess-promotion" class="chess-promotion" role="dialog" aria-modal="true" aria-label="Choose promotion piece">
+  <div class="chess-promotion__inner">
+    <p>Promote to:</p>
+    <div class="chess-promotion__buttons">
+      <button type="button" data-piece="q" aria-label="Queen"><img alt="Queen"></button>
+      <button type="button" data-piece="r" aria-label="Rook"><img alt="Rook"></button>
+      <button type="button" data-piece="b" aria-label="Bishop"><img alt="Bishop"></button>
+      <button type="button" data-piece="n" aria-label="Knight"><img alt="Knight"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+<script>
+(function () {
+  var PIECE_BASE = 'https://chessboardjs.com/img/chesspieces/wikipedia/';
+  var FILES = ['a','b','c','d','e','f','g','h'];
+
+  var game = new Chess();
+  var $board = $('#chess-board');
+  var $status = $('#chess-status');
+  var $moves = $('#chess-moves');
+  var $promo = $('#chess-promotion');
+  var board;
+
+  // UI state
+  var selectedSquare = null;        // click-to-move selection
+  var pendingPromotion = null;      // {from, to, color} while picker is open
+  var dragJustEnded = false;        // suppress click that follows a drag
+
+  function squareEl(sq) { return $board.find('.square-' + sq); }
+  function clearClass(cls) { $board.find('.square-55d63').removeClass(cls); }
+
+  // ---------- highlights ----------
+
+  function paintSelection() {
+    clearClass('chess-sq--selected');
+    clearClass('chess-sq--legal');
+    clearClass('chess-sq--capture');
+    if (!selectedSquare) return;
+    squareEl(selectedSquare).addClass('chess-sq--selected');
+    var moves = game.moves({ square: selectedSquare, verbose: true });
+    moves.forEach(function (m) {
+      var isCap = m.flags.indexOf('c') !== -1 || m.flags.indexOf('e') !== -1;
+      squareEl(m.to).addClass(isCap ? 'chess-sq--capture' : 'chess-sq--legal');
+    });
+  }
+
+  function paintLastMove() {
+    clearClass('chess-sq--last');
+    var hist = game.history({ verbose: true });
+    if (!hist.length) return;
+    var last = hist[hist.length - 1];
+    squareEl(last.from).addClass('chess-sq--last');
+    squareEl(last.to).addClass('chess-sq--last');
+  }
+
+  function paintCheck() {
+    clearClass('chess-sq--check');
+    if (!game.in_check()) return;
+    var color = game.turn();
+    var grid = game.board();
+    for (var r = 0; r < 8; r++) {
+      for (var f = 0; f < 8; f++) {
+        var p = grid[r][f];
+        if (p && p.type === 'k' && p.color === color) {
+          squareEl(FILES[f] + (8 - r)).addClass('chess-sq--check');
+        }
+      }
+    }
+  }
+
+  function refreshHighlights() {
+    paintLastMove();
+    paintCheck();
+    paintSelection();
+  }
+
+  // ---------- promotion ----------
+
+  function isPromotionMove(from, to) {
+    var p = game.get(from);
+    if (!p || p.type !== 'p') return false;
+    var rank = to.charAt(1);
+    return (p.color === 'w' && rank === '8') || (p.color === 'b' && rank === '1');
+  }
+
+  function openPromotionPicker(color) {
+    $promo.find('button').each(function () {
+      var piece = $(this).data('piece');
+      var code = color + piece.toUpperCase();
+      $(this).find('img').attr('src', PIECE_BASE + code + '.png');
+    });
+    $promo.addClass('is-open');
+  }
+
+  function closePromotionPicker() {
+    $promo.removeClass('is-open');
+    pendingPromotion = null;
+  }
+
+  $promo.on('click', 'button', function () {
+    if (!pendingPromotion) return;
+    var pp = pendingPromotion;
+    var piece = $(this).data('piece');
+    closePromotionPicker();
+    var move = game.move({ from: pp.from, to: pp.to, promotion: piece });
+    selectedSquare = null;
+    if (move) {
+      board.position(game.fen());
+    } else {
+      board.position(game.fen()); // resync just in case
+    }
+    refreshHighlights();
+    updateStatus();
+  });
+
+  // ---------- core move attempt ----------
+  // Returns: move object on success, 'pending' if a promotion picker was opened,
+  // null if illegal.
+  function attemptMove(from, to, viaDrag) {
+    if (isPromotionMove(from, to)) {
+      var color = game.get(from).color;
+      // Verify chess.js considers any move from→to legal (any promo piece works to test)
+      var probe = game.moves({ square: from, verbose: true })
+                      .filter(function (m) { return m.to === to; });
+      if (!probe.length) return null;
+      pendingPromotion = { from: from, to: to, color: color };
+      openPromotionPicker(color);
+      return 'pending';
+    }
+    var move = game.move({ from: from, to: to });
+    if (move === null) return null;
+    selectedSquare = null;
+    if (!viaDrag) board.position(game.fen());
+    refreshHighlights();
+    updateStatus();
+    return move;
+  }
+
+  // ---------- chessboard.js: drag handlers ----------
+
+  function onDragStart(source, piece) {
+    if (game.game_over() || pendingPromotion) return false;
+    if ((game.turn() === 'w' && /^b/.test(piece)) ||
+        (game.turn() === 'b' && /^w/.test(piece))) return false;
+    // Selecting via drag also drives the click-mode highlights
+    selectedSquare = source;
+    paintSelection();
+  }
+
+  function onDrop(source, target) {
+    dragJustEnded = true;
+    setTimeout(function () { dragJustEnded = false; }, 0);
+
+    if (source === target) return 'snapback'; // pure click on a piece
+
+    var result = attemptMove(source, target, true);
+    if (result === null) {
+      selectedSquare = null;
+      paintSelection();
+      return 'snapback';
+    }
+    if (result === 'pending') {
+      // Visually revert; promotion picker will re-sync after user choice.
+      return 'snapback';
+    }
+  }
+
+  function onSnapEnd() {
+    board.position(game.fen());
+    refreshHighlights();
+  }
+
+  // ---------- click-to-move ----------
+
+  $board.on('click', '.square-55d63', function () {
+    if (dragJustEnded) return;             // click that tails a drag-drop
+    if (game.game_over() || pendingPromotion) return;
+
+    var sq = $(this).attr('data-square');
+    if (!sq) return;
+
+    if (selectedSquare === null) {
+      var p = game.get(sq);
+      if (p && p.color === game.turn()) {
+        selectedSquare = sq;
+        paintSelection();
+      }
+      return;
+    }
+
+    if (sq === selectedSquare) {           // click same square → deselect
+      selectedSquare = null;
+      paintSelection();
+      return;
+    }
+
+    var result = attemptMove(selectedSquare, sq, false);
+    if (result === 'pending') return;      // wait for promotion choice
+    if (result === null) {
+      // Illegal: if clicked own piece, switch selection; else clear.
+      var p2 = game.get(sq);
+      selectedSquare = (p2 && p2.color === game.turn()) ? sq : null;
+      paintSelection();
+    }
+  });
+
+  // ---------- buttons ----------
+
+  $('#chess-reset').on('click', function () {
+    game.reset();
+    selectedSquare = null;
+    closePromotionPicker();
+    board.start(false);
+    refreshHighlights();
+    updateStatus();
+  });
+  $('#chess-undo').on('click', function () {
+    closePromotionPicker();
+    game.undo();
+    selectedSquare = null;
+    board.position(game.fen(), false);
+    refreshHighlights();
+    updateStatus();
+  });
+  $('#chess-flip').on('click', function () {
+    board.flip();
+    refreshHighlights();
+  });
+
+  // ---------- status ----------
+
+  function updateStatus() {
+    var turn = game.turn() === 'w' ? 'White' : 'Black';
+    var other = game.turn() === 'w' ? 'Black' : 'White';
+    var msg, over = false;
+    if (game.in_checkmate())                { msg = 'Checkmate. ' + other + ' wins.'; over = true; }
+    else if (game.in_stalemate())           { msg = 'Draw — stalemate.'; over = true; }
+    else if (game.insufficient_material())  { msg = 'Draw — insufficient material.'; over = true; }
+    else if (game.in_threefold_repetition()){ msg = 'Draw — threefold repetition.'; over = true; }
+    else if (game.in_draw())                { msg = 'Draw.'; over = true; }
+    else { msg = turn + ' to move' + (game.in_check() ? ' (in check)' : ''); }
+    $status.text(msg).toggleClass('is-over', over);
+    $moves.text(game.pgn({ max_width: 40, newline_char: '\n' }));
+  }
+
+  // ---------- init ----------
+
+  board = Chessboard('chess-board', {
+    draggable: true,
+    position: 'start',
+    pieceTheme: PIECE_BASE + '{piece}.png',
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd
+  });
+
+  $(window).on('resize', function () {
+    board.resize();
+    refreshHighlights();
+  });
+
+  refreshHighlights();
+  updateStatus();
+})();
+</script>
