@@ -6,11 +6,5 @@ main:
   - title: "CV"
     url: /cv/
 
-  - title: "Simulations"
-    url: /simulations/
-
   - title: "Album"
     url: /album/
-
-  - title: "Games"
-    url: /games/
